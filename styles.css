@@ -1,0 +1,438 @@
+:root{
+  --bg: #06070c;
+  --ink: #e9ede9;
+  --ink-dim: #e9ebea;
+  --ink-faint: #757575;
+  --narrator: #c3ccc6;         /* the caption: brighter than --ink-dim, quieter than the organisms */
+  --hint: #acadad;             /* --spore, stepped back: the colour the piece already uses for "you can act" */
+  --line: rgba(233, 237, 233, 0.16);
+  --nav-line: rgba(233, 237, 233, 0.34);   /* the step-nav frame: the one control that must be found */
+  --nav-ink: #b4bdb8;                      /* resting arrows: legible on its own, with headroom below --ink for hover */
+  --spore: #b9f2d0;
+  /* Home only */
+  --grid: rgba(233, 237, 233, 0.052);
+  --grid-step: 60px;
+  --tel: rgba(233, 237, 233, 0.22);
+  --title: #7fae95;            /* the spore's green, carried most of the way back to the dark */
+}
+
+*{ box-sizing: border-box; }
+
+html, body{
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  font-weight: 300;
+}
+
+#stage canvas{ display: block; touch-action: none; }
+
+/* ---- HUD --------------------------------------------------------------- */
+.hud{
+  position: fixed;
+  top: clamp(16px, 2.4vw, 28px);
+  left: clamp(16px, 2.4vw, 30px);
+  right: clamp(16px, 2.4vw, 30px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 10;
+  pointer-events: none;
+}
+.hud *{ pointer-events: auto; }
+
+.pill{
+  padding: 7px 16px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink-dim);
+  font-family: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+.pill:hover{ color: var(--ink); border-color: rgba(233,237,233,0.4); }
+
+.phase-nav{ display: flex; }
+
+.tab{
+  padding: 7px 15px;
+  border: 1px solid var(--line);
+  border-left-width: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  font-family: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.25s ease, background 0.25s ease, opacity 0.25s ease;
+}
+.tab:first-child{ border-left-width: 1px; }
+.tab:hover:not(:disabled){ color: var(--ink-dim); }
+.tab:disabled{ opacity: 0.35; cursor: default; }
+.tab[aria-current='true']{
+  color: var(--ink);
+  background: rgba(185, 242, 208, 0.07);
+}
+
+/* ---- step nav ---------------------------------------------------------- */
+.step-nav{
+  position: fixed;
+  right: clamp(16px, 2.4vw, 30px);
+  bottom: clamp(16px, 2.4vw, 28px);
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--nav-line);
+  background: rgba(233, 237, 233, 0.04);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+}
+.step-nav button{
+  width: 40px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--nav-ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+.step-nav button:hover:not(:disabled){ color: var(--ink); }
+.step-nav button:disabled{ opacity: 0.45; cursor: default; }
+.step-nav button.ready{
+  color: var(--spore);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+.rule{ width: 1px; background: var(--nav-line); }
+
+@keyframes breathe{
+  0%, 100%{ opacity: 0.45; }
+  50%{ opacity: 1; }
+}
+
+/* ---- caption (the Narrator) -------------------------------------------- */
+.caption{
+  position: fixed;
+  left: 50%;
+  bottom: clamp(72px, 8vw, 92px);
+  transform: translateX(-50%);
+  width: min(680px, 88vw);
+  margin: 0;
+  /* The Narrator is a voice, not chrome. It is sized just under the Outro's
+     closing line, which is the same voice saying the last thing it says. */
+  font-size: clamp(16px, 1.5vw, 20px);
+  line-height: 1.55;
+  letter-spacing: 0.005em;
+  color: var(--narrator);
+  text-align: center;
+  text-wrap: balance;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+.caption.show{ opacity: 1; }
+
+/* By Giving the mycelium fills the frame and bright hyphae run straight through
+   the line. Rather than a plate — which would put a hard edge and a piece of UI
+   over the world — the caption carries a soft well of the background with it:
+   a feathered ellipse with no edge to find, sized from the line so it grows
+   when the line wraps. It dims what is behind the words and nothing else. */
+.caption::before{
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 170%;
+  height: 400%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse 50% 50% at 50% 50%,
+    rgba(6,7,12,0.92) 0%,
+    rgba(6,7,12,0.78) 38%,
+    rgba(6,7,12,0.42) 62%,
+    rgba(6,7,12,0) 78%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Lines in (brackets) are the piece telling the viewer what to do. That is the
+   Instrument's job, not the Narrator's, so they are set in the Instrument's
+   voice — the same mono the telemetry and the tabs are in. */
+.caption.is-hint{
+  font-family: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+  font-size: clamp(13px, 1.1vw, 15px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  /* The step-nav's ready arrow and Begin are already in the spore's green, so
+     the piece says "you can act here" in green. Hints say the same thing.
+     Set as a flat colour, not an opacity: opacity is the caption's own fade. */
+  color: var(--hint);
+}
+
+/* Each word of a line rises in on its own beat (the stagger is in ui.js).
+   The shadow is the other half of the scrim: the well handles the wide tangle,
+   this handles the single bright hypha lying across a letter. */
+.caption .word{
+  display: inline-block;
+  text-shadow:
+    0 0 5px  rgba(6,7,12,0.98),
+    0 0 14px rgba(6,7,12,0.92),
+    0 0 30px rgba(6,7,12,0.70);
+  opacity: 0;
+  transform: translateY(0.32em);
+  transition: opacity 2s ease, transform 2s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.caption .word.in{
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .caption .word{ transform: none; transition: opacity 0.3s ease; }
+}
+
+/* ---- the world recedes while the Narrator speaks ------------------------ */
+/* The caption's well only clears the ground directly behind the words. This is
+   the wider move: while a line is playing, the whole world steps back half a
+   stop, then comes forward again when the Narrator stops. It is the piece
+   quieting to be heard, and by Giving — when the mycelium fills the frame and
+   there is no empty ground left anywhere — it is what keeps the voice in front
+   of the picture instead of inside it.
+
+   A pseudo-element rather than markup: it is presentation with nothing to hold.
+   It sits above the canvas and below the caption and the HUD, which are z-10.
+   The fade is slow on the way in and slower on the way out, so the world
+   surfacing again is never the thing that catches the eye. */
+body::after{
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(6,7,12,0) 42%, rgba(6,7,12,0.34) 100%),
+    rgba(6,7,12,0.22);
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+body.is-narrating::after{
+  opacity: 1;
+  transition: opacity 0.9s ease;
+}
+
+/* Home draws its own scrim and the Outro is already black, so neither wants a
+   second one — and the caption is hidden in both anyway. */
+body.is-home::after,
+body.is-outro::after{ opacity: 0; }
+
+@media (prefers-reduced-motion: reduce){
+  body::after, body.is-narrating::after{ transition: opacity 0.3s ease; }
+}
+
+/* Chrome hides on Home and during the Outro. */
+.hud, .step-nav{ transition: opacity 0.8s ease, visibility 0s linear 0s; }
+body.is-home .hud,
+body.is-home .step-nav,
+body.is-home .caption,
+body.is-outro .hud,
+body.is-outro .step-nav,
+body.is-outro .caption{
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.8s ease, visibility 0s linear 0.8s;
+}
+
+/* ---- overlays ---------------------------------------------------------- */
+.overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 45%, rgba(20,32,26,0.55) 0%, transparent 65%),
+    var(--bg);
+  transition: opacity 1.3s ease;
+}
+.overlay.is-hidden{ opacity: 0; pointer-events: none; }
+
+/* ---- Home -------------------------------------------------------------- */
+/* Home shows the live world through the Instrument, so its overlay is a scrim
+   rather than a fill: dark enough to hold type, clear enough to see the First
+   Spore breathing behind it. */
+#homeScreen{
+  flex-direction: column;
+  justify-content: flex-start;   /* the card is placed from the top, not centred:
+                                    the crosshair owns the upper third */
+  background:
+    radial-gradient(ellipse 58% 48% at 50% 34%, rgba(16,26,22,0.30) 0%, transparent 70%),
+    rgba(6,7,12,0.58);
+}
+
+/* The grid is ruled and exact — it is the apparatus. Only the marks the
+   Instrument lays on the specimen are stippled (those are drawn on the canvas
+   in landing.js). */
+#homeScreen .grid{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(to right,  var(--grid) 0 1px, transparent 1px var(--grid-step)),
+    repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px var(--grid-step));
+  background-position: center center;
+  transition: opacity 1.4s ease;
+}
+
+/* ---- telemetry --------------------------------------------------------- */
+.telemetry{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.9s ease;
+}
+.tel{
+  position: absolute;
+  font-family: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.10em;
+  color: var(--tel);
+  white-space: nowrap;
+  transition: transform 0.9s cubic-bezier(0.5,0,0.75,0), opacity 0.7s ease;
+}
+.tel.tl{ top: 26px;    left: 30px; }
+.tel.tr{ top: 26px;    right: 30px; }
+
+/* Begin retracts the telemetry off its own edge before the rest fades. */
+body.is-leaving .tel.tl,
+body.is-leaving .tel.tr{ transform: translateY(-160%); opacity: 0; }
+body.is-leaving .tel.bl,
+body.is-leaving .tel.br{ transform: translateY(160%);  opacity: 0; }
+body.is-leaving #homeScreen .grid{ opacity: 0; }
+
+/* ---- the card ---------------------------------------------------------- */
+/* Sits below the crosshair, which holds the upper third. The First Spore is
+   framed at 33% of the viewport height (HOME_SPORE_Y in landing.js) and the
+   bracket around it reaches ~104px past that, so the card clears it by a fixed
+   margin on short screens and sits a little lower on tall ones. */
+.home-card{
+  position: relative;
+  margin-top: max(46vh, calc(33vh + 130px));
+  max-width: min(920px, 92vw);
+  text-align: center;
+}
+
+.title{
+  margin: 0 0 clamp(26px, 4vh, 44px);
+  font-family: 'mieszkanie9', 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(52px, 9.5vw, 132px);
+  line-height: 0.96;
+  word-spacing: -0.18em;   /* the face's own space glyph is very wide */
+  /* Alive, but dimmer than the one real organism on screen. */
+  color: var(--title);
+  text-shadow: 0 0 38px rgba(185,242,208,0.16);
+  /* A slow rise and fall — the title breathes with the specimen. */
+  animation: float 9s ease-in-out infinite;
+}
+
+@keyframes float{
+  0%, 100%{ transform: translateY(-0.055em); }
+  50%     { transform: translateY(0.055em); }
+}
+
+.specimen{
+  margin: 0 0 16px;
+  font-family: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+  font-size: clamp(10px, 1.05vw, 13px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+#beginBtn{
+  position: relative;
+  padding: 14px 30px;
+  border: 0;                       /* the frame is stippled onto the canvas */
+  background: transparent;
+  color: var(--spore);
+  font-family: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+#beginBtn:hover,
+#beginBtn:focus-visible{
+  color: #e4fff0;
+  text-shadow: 0 0 20px rgba(185,242,208,0.45);
+}
+#beginBtn:focus-visible{ outline: 1px solid rgba(185,242,208,0.5); outline-offset: 6px; }
+
+/* Leaving: the type goes before the world does, so the last thing on screen
+   is the spore alone. */
+body.is-leaving .home-card{
+  opacity: 0;
+  transition: opacity 0.85s ease;
+}
+
+/* ---- Home on a phone --------------------------------------------------- */
+/* Four corners of telemetry do not fit. Keep one line, keep everything else. */
+@media (max-width: 720px){
+  :root{ --grid-step: 40px; }
+  .tel.tr, .tel.bl{ display: none; }
+  .tel.tl{ left: 50%; transform: translateX(-50%); top: auto; bottom: 46px; }
+  .tel.br{ left: 50%; right: auto; transform: translateX(-50%); bottom: 26px; }
+  body.is-leaving .tel.tl{ transform: translateX(-50%) translateY(160%); }
+  body.is-leaving .tel.br{ transform: translateX(-50%) translateY(160%); }
+  .specimen{ letter-spacing: 0.08em; }
+}
+
+/* The breath is the only sign the specimen is alive, so it stays. The drift of
+   the title is decoration, so it goes. */
+@media (prefers-reduced-motion: reduce){
+  .title{ animation: none; }
+}
+
+/* ---- outro ------------------------------------------------------------- */
+.outro{
+  z-index: 25;
+  flex-direction: column;
+  gap: 40px;
+  background: #000;
+  transition: opacity 2.4s ease;
+}
+
+.closing-line{
+  max-width: 560px;
+  margin: 0;
+  font-size: clamp(17px, 2.2vw, 22px);
+  line-height: 1.6;
+  text-align: center;
+  text-wrap: balance;   /* the longest closing line otherwise strands "on." alone */
+  color: var(--ink);
+  opacity: 0;
+  /* Must match CLOSING_FADE_MS in ui.js. Shorter than it was: the Outro used to
+     be one line, where a long fade was the whole ending; now it is five, and a
+     1.8s fade each way between them is most of the Outro spent dark. */
+  transition: opacity 1s ease;
+}
+.closing-line.show{ opacity: 1; }
+
+#outroHomeBtn{
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 2s ease, color 0.25s ease, border-color 0.25s ease;
+}
+#outroHomeBtn.show{ opacity: 1; pointer-events: auto; }
