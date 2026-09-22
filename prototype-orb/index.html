@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Between Us</title>
+<!-- Every face the piece sets is embedded in fonts.css. Nothing is fetched:
+     this has to render its own typography from an unzipped folder, offline. -->
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="is-home">
+
+<div id="stage"></div>
+
+<header class="hud">
+  <button id="homeBtn" class="pill">Home</button>
+  <nav class="phase-nav">
+    <button class="tab" data-phase="0">Drifting</button>
+    <button class="tab" data-phase="1">Receiving</button>
+    <button class="tab" data-phase="2">Giving</button>
+  </nav>
+</header>
+
+<p id="caption" class="caption" aria-live="polite"></p>
+
+<div class="step-nav">
+  <button id="prevBtn" aria-label="Previous phase">&lsaquo;</button>
+  <span class="rule"></span>
+  <button id="nextBtn" aria-label="Next phase">&rsaquo;</button>
+</div>
+
+<!-- Home. The Instrument (grid, crosshair, telemetry) is drawn over the live
+     world, not in place of it: the spore in the crosshair is the real First
+     Spore. See docs/adr/0003-home-is-an-instrument-that-is-dismissed.md -->
+<section id="homeScreen" class="overlay">
+  <div class="grid" aria-hidden="true"></div>
+
+  <div class="telemetry" aria-hidden="true">
+    <span class="tel tl">OART1033 / A3.2 / ENTANGLEMENT</span>
+    <span class="tel tr" id="telCam">CAM 0.000 , 0.000&nbsp;&nbsp; Z 0.000</span>
+  </div>
+
+  <div class="home-card">
+    <h1 class="title">Between&nbsp;Us</h1>
+    <p class="specimen">[ Survival is not an individual condition. ]</p>
+    <button id="beginBtn">[ BEGIN OBSERVATION ]</button>
+  </div>
+</section>
+
+<section id="outro" class="overlay outro is-hidden">
+  <p id="closingLine" class="closing-line"></p>
+  <button id="outroHomeBtn" class="pill">Home</button>
+</section>
+
+<!-- Plain scripts, loaded in order (no modules), so the piece also runs
+     when index.html is opened straight from the unzipped folder. -->
+<script src="lib/p5.min.js"></script>
+<script src="script.js"></script>
+<script src="camera.js"></script>
+<script src="texture.js"></script>
+<script src="render.js"></script>
+<script src="ui.js"></script>
+<script src="landing.js"></script>
+<!-- One file per phase. These must load before sketch.js, which builds
+     PHASES from them as it loads. -->
+<script src="drifting.js"></script>
+<script src="receiving.js"></script>
+<script src="giving.js"></script>
+<script src="sketch.js"></script>
+</body>
+</html>
